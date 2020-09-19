@@ -1,0 +1,40 @@
+[[package]]
+category = "main"
+description = "A lightweight library for converting complex datatypes to and from native Python datatypes."
+name = "marshmallow"
+optional = false
+python-versions = ">=3.5"
+version = "3.8.0"
+
+[package.extras]
+dev = ["pytest", "pytz", "simplejson", "mypy (0.782)", "flake8 (3.8.3)", "flake8-bugbear (20.1.4)", "pre-commit (>=2.4,<3.0)", "tox"]
+docs = ["sphinx (3.2.1)", "sphinx-issues (1.2.0)", "alabaster (0.7.12)", "sphinx-version-warning (1.1.2)", "autodocsumm (0.2.0)"]
+lint = ["mypy (0.782)", "flake8 (3.8.3)", "flake8-bugbear (20.1.4)", "pre-commit (>=2.4,<3.0)"]
+tests = ["pytest", "pytz", "simplejson"]
+
+[[package]]
+category = "main"
+description = "Schema support for Agent and API communication. Using JSON RPC 2.0 Schema."
+name = "pkt-trail-api-schema"
+optional = false
+python-versions = "*"
+version = "0.0.1"
+
+[package.dependencies]
+marshmallow = "*"
+
+[package.source]
+reference = "6259b676523a6f9ae841680b4a9acf8861a14095"
+type = "git"
+url = "https://github.com/hyphenOs/pkt-trail-api-schema"
+[metadata]
+content-hash = "99bded90c9a512c40f6934e77fadbab9d461a7aedd65ddf76db907b6a6e9ecb6"
+lock-version = "1.0"
+python-versions = "^3.5"
+
+[metadata.files]
+marshmallow = [
+    {file = "marshmallow-3.8.0-py2.py3-none-any.whl", hash = "sha256:2272273505f1644580fbc66c6b220cc78f893eb31f1ecde2af98ad28011e9811"},
+    {file = "marshmallow-3.8.0.tar.gz", hash = "sha256:47911dd7c641a27160f0df5fd0fe94667160ffe97f70a42c3cc18388d86098cc"},
+]
+pkt-trail-api-schema = []
