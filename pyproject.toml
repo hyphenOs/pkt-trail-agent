@@ -5,9 +5,14 @@ description = "Agent for the Packet Trail Application"
 authors = ["Abhijit Gadgil <gabhijit@hyphenos.io>"]
 license = "GPL-3.0-or-later"
 
+packages = [
+	{ include = "pkttrail" }]
+
+
 [tool.poetry.dependencies]
 python = "^3.5"
 pkt-trail-api-schema = {git = "https://github.com/hyphenOs/pkt-trail-api-schema"}
+requests = "^2.24.0"
 
 [tool.poetry.dev-dependencies]
 
