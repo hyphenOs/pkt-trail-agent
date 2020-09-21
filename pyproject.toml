@@ -11,7 +11,12 @@ packages = [
 
 [tool.poetry.dependencies]
 python = "^3.5"
+
+# When pushed to origin - The following line should be uncommented
 pkt-trail-api-schema = {git = "https://github.com/hyphenOs/pkt-trail-api-schema"}
+# Use following path during development.
+#pkt-trail-api-schema = { path = "../pkt-trail-api-schema/"}
+
 requests = "^2.24.0"
 
 [tool.poetry.dev-dependencies]

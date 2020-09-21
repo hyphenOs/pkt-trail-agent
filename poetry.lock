@@ -51,7 +51,6 @@ marshmallow = "*"
 reference = "6259b676523a6f9ae841680b4a9acf8861a14095"
 type = "git"
 url = "https://github.com/hyphenOs/pkt-trail-api-schema"
-
 [[package]]
 category = "main"
 description = "Python HTTP for Humans."
