@@ -8,19 +8,31 @@ import threading
 
 import requests
 
-from .messages import InitRequestMessage
+from .messages import (
+        InitRequestMessage,
+        KeepAliveRequestMessage
+    )
+from .messages import is_valid_response
 
 _logger = logging.getLogger(__name__)
 logging.basicConfig()
 
+class PktTrailAgentAPIError(Exception):
+    pass
+
+class PktTrailAgentInvalidAPIResponse(Exception):
+    pass
 
 _default_config = {
         'init_retry_timeout' : 5,
-        'keep_alive_interval' : 10,
+        'keepalive_interval' : 10,
+        'max_keepalive_errors' : 5,
         'event_get_timeout': 1,
         'backoff_multiplier': 2,
         'max_backoff_secs': 10,
-        'api_url': ''
+        'api_base_url': 'http://localhost:8000/agents/',
+        'init_msg_path' : 'init/',
+        'keepalive_msg_path': 'keepalive/'
     }
 
 class AgentStates(Enum):
@@ -74,13 +86,15 @@ class AgentEvents(Enum):
 
     """
     EV_STARTED = 0 #:
-    EV_KEEPALIVE_EXPIRED = 1
-    EV_INIT_RESPONSE = 2
-    EV_INIT_FAILURE = 3
 
+    EV_INIT_RESPONSE = 1
+    EV_INIT_FAILURE = 2
+
+    EV_KEEPALIVE_EXPIRED = 3
+    EV_KEEPALIVE_FAILURE = 4
 
 class PktTrailAgent:
-
+    """Main Agent Class."""
 
     def __init__(self):
 
@@ -90,6 +104,10 @@ class PktTrailAgent:
         self._config = _default_config
 
         self._init_errors = 0
+        self._init_retry_timer = None
+
+        self._keepalive_errors = 0
+        self._keepalive_timer = None
 
 
     def init(self):
@@ -126,7 +144,7 @@ class PktTrailAgent:
                 self._state = next_state
 
             except Exception as e:
-                print(e)
+                _logger.exception("Exception in run loop:")
                 # FIXME: Need to see what needs to be done
                 continue
 
@@ -135,7 +153,9 @@ class PktTrailAgent:
                 (AgentStates.OFFLINE, AgentEvents.EV_STARTED, self.send_init_req_msg),
                 (AgentStates.INITIALIZING, AgentEvents.EV_INIT_RESPONSE, self.init_resp_received),
                 (AgentStates.INITIALIZING, AgentEvents.EV_INIT_FAILURE, self.send_init_req_msg),
-                (AgentStates.STARTED, AgentEvents.EV_KEEPALIVE_EXPIRED, self.send_keepalive_msg)
+                (AgentStates.INITIALIZED, AgentEvents.EV_KEEPALIVE_EXPIRED, self.send_keepalive_msg),
+                (AgentStates.STARTED, AgentEvents.EV_KEEPALIVE_EXPIRED, self.send_keepalive_msg),
+                (AgentStates.STARTED, AgentEvents.EV_KEEPALIVE_FAILURE, self.send_init_req_msg)
             ]
 
         for state, ev, action in agent_actions:
@@ -147,17 +167,36 @@ class PktTrailAgent:
         If an error occurred during sending a message, increases the retries count with backoff.
         After certain retries hopelessly gives up.
         """
+
+        # If we are about to be sending init message, there should be no 'active' init timer.
+        # if that exists, it's a leak
+        assert self._init_retry_timer == None
+
         try:
             init_req = InitRequestMessage().to_wire()
 
-            url = self._config.api_url
-            response = requests.post(url, init_req)
+            base_url = self._config['api_base_url']
+            url = base_url + self._config['init_msg_path']
+            response = requests.post(url, json=init_req)
+
+            response_json = response.json()
+            if not response.ok:
+                raise PktTrailAgentAPIError
+
+            if not is_valid_response(response_json):
+                raise PktTrailAgentInvalidAPIResponse
 
             self._init_errors = 0
+
+            # Go ahead start a keep-alive timer
+            keepalive_timeout = self._config['keepalive_interval']
+            self._keepalive_timer = threading.Timer(keepalive_timeout, self._do_keepalive_interval)
+            self._keepalive_timer.start()
+
             return AgentStates.INITIALIZED
 
         except Exception as e:
-            _logger.error("Exception:")
+            _logger.exception("Exception:")
             self._init_errors += 1
 
             timeout = self._config['init_retry_timeout'] * self._init_errors
@@ -170,7 +209,6 @@ class PktTrailAgent:
 
         return AgentStates.INITIALIZING
 
-
     def init_resp_received(self):
         """ Called when init response is received.
 
@@ -178,8 +216,46 @@ class PktTrailAgent:
         """
         return AgentStates.INITIALIZED
 
-    def send_keepalive_msg(self):
+    def send_keepalive_msg(self, *args):
         """ Sends KeepAlive Message."""
+
+        # If we are about to be sending keep-alive message, there should be no 'active'
+        # keep-alive timer. If that exists, it's a leak
+        assert self._keepalive_timer == None
+
+        try:
+            keepalive_req = KeepAliveRequestMessage().to_wire()
+
+            base_url = self._config['api_base_url']
+            url = base_url + self._config['keepalive_msg_path']
+            response = requests.post(url, json=keepalive_req)
+
+            response_json = response.json()
+            if not response.ok:
+                raise PktTrailAgentAPIError
+
+            if not is_valid_response(response_json):
+                raise PktTrailAgentInvalidAPIResponse
+
+            self._keepalive_errors = 0
+        except Exception as e:
+            _logger.exception("Exception:")
+            self._keepalive_errors += 1
+
+            if self._keepalive_errors == self._config['max_keepalive_errors']:
+                _logger.error("Maximum Keep Alive Errors Reached, Re-initializing.")
+
+                ev = AgentEvents.EV_KEEPALIVE_FAILURE
+                _logger.warning("Adding event (%s) to event queue.", ev)
+                self._event_queue.put((ev, ()))
+
+                return AgentStates.STARTED
+
+        # Go ahead start a keep-alive timer
+        keepalive_timeout = self._config['keepalive_interval']
+        self._keepalive_timer = threading.Timer(keepalive_timeout, self._do_keepalive_interval)
+        self._keepalive_timer.start()
+
         return AgentStates.STARTED
 
 
@@ -187,6 +263,14 @@ class PktTrailAgent:
         self._init_retry_timer = None
 
         ev = AgentEvents.EV_INIT_FAILURE
+        _logger.warning("Adding event (%s) to event queue.", ev)
+        self._event_queue.put((ev, ()))
+
+    def _do_keepalive_interval(self):
+
+        self._keepalive_timer = None
+
+        ev = AgentEvents.EV_KEEPALIVE_EXPIRED
         _logger.warning("Adding event (%s) to event queue.", ev)
         self._event_queue.put((ev, ()))
 
