@@ -13,6 +13,7 @@ from .messages import (
         KeepAliveRequestMessage
     )
 from .messages import is_valid_response
+from .utils import get_running_services
 
 _logger = logging.getLogger(__name__)
 logging.basicConfig()
@@ -224,7 +225,8 @@ class PktTrailAgent:
         assert self._keepalive_timer == None
 
         try:
-            keepalive_req = KeepAliveRequestMessage().to_wire()
+            running_services = get_running_services()
+            keepalive_req = KeepAliveRequestMessage(services=running_services).to_wire()
 
             base_url = self._config['api_base_url']
             url = base_url + self._config['keepalive_msg_path']

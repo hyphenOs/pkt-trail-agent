@@ -57,7 +57,7 @@ class InitRequestMessage(JsonRPCMessage):
 
 class KeepAliveRequestMessage(JsonRPCMessage):
 
-    def __init__(self, **kw):
+    def __init__(self, services=None, **kw):
 
         kw.update(
                 method=OS_AGENT_KEEPALIVE_MESSAGE,
@@ -65,13 +65,15 @@ class KeepAliveRequestMessage(JsonRPCMessage):
 
         super().__init__(**kw)
 
-        self._params = {}
+        if services is None:
+            services = []
+        self._params = {'services':services}
 
     def to_wire(self):
         d = dict(jsonrpc=self._version,
                 method=self._method,
                 id=self._id,
-                paams=self._params)
+                params=self._params)
 
         _logger.warning("Dict: %s", d)
         message = PktTrailKeepAliveRequestSchema().load(d)
