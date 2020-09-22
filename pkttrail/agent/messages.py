@@ -29,7 +29,7 @@ class JsonRPCMessage:
 
 class InitRequestMessage(JsonRPCMessage):
 
-    def __init__(self, **kw):
+    def __init__(self, agent_uuid, **kw):
 
         kw.update(
                 method=OS_AGENT_INIT_MESSAGE,
@@ -39,7 +39,8 @@ class InitRequestMessage(JsonRPCMessage):
 
         self._params = {
                 'schemaVersion' : schema_version,
-                'agentSWVersion': sw_version
+                'agentSWVersion': sw_version,
+                'agentUUID': agent_uuid
             }
 
     def to_wire(self):
@@ -48,16 +49,14 @@ class InitRequestMessage(JsonRPCMessage):
                 id=self._id,
                 params=self._params)
 
-        _logger.warning("Dict: %s", d)
-        message = PktTrailInitRequestSchema().load(d)
-        _logger.warning("message: %s", message)
+        message = PktTrailInitRequestSchema().dump(d)
 
         return message
 
 
 class KeepAliveRequestMessage(JsonRPCMessage):
 
-    def __init__(self, services=None, **kw):
+    def __init__(self, agent_uuid, services=None, **kw):
 
         kw.update(
                 method=OS_AGENT_KEEPALIVE_MESSAGE,
@@ -67,7 +66,9 @@ class KeepAliveRequestMessage(JsonRPCMessage):
 
         if services is None:
             services = []
-        self._params = {'services':services}
+        self._params = {
+                'services':services,
+                'agentUUID': agent_uuid}
 
     def to_wire(self):
         d = dict(jsonrpc=self._version,
@@ -75,9 +76,7 @@ class KeepAliveRequestMessage(JsonRPCMessage):
                 id=self._id,
                 params=self._params)
 
-        _logger.warning("Dict: %s", d)
-        message = PktTrailKeepAliveRequestSchema().load(d)
-        _logger.warning("message: %s", message)
+        message = PktTrailKeepAliveRequestSchema().dump(d)
 
         return message
 

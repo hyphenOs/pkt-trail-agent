@@ -33,7 +33,8 @@ _default_config = {
         'max_backoff_secs': 10,
         'api_base_url': 'http://localhost:8000/agents/',
         'init_msg_path' : 'init/',
-        'keepalive_msg_path': 'keepalive/'
+        'keepalive_msg_path': 'keepalive/',
+        'agent_uuid': 'e1897f15-23ea-43d1-a1c0-d5f32afc6a94'
     }
 
 class AgentStates(Enum):
@@ -174,7 +175,8 @@ class PktTrailAgent:
         assert self._init_retry_timer == None
 
         try:
-            init_req = InitRequestMessage().to_wire()
+            agent_uuid = self._config['agent_uuid']
+            init_req = InitRequestMessage(agent_uuid=agent_uuid).to_wire()
 
             base_url = self._config['api_base_url']
             url = base_url + self._config['init_msg_path']
@@ -225,8 +227,10 @@ class PktTrailAgent:
         assert self._keepalive_timer == None
 
         try:
+            agent_uuid = self._config['agent_uuid']
             running_services = get_running_services()
-            keepalive_req = KeepAliveRequestMessage(services=running_services).to_wire()
+            keepalive_req = KeepAliveRequestMessage(
+                    agent_uuid=agent_uuid, services=running_services).to_wire()
 
             base_url = self._config['api_base_url']
             url = base_url + self._config['keepalive_msg_path']
@@ -250,7 +254,6 @@ class PktTrailAgent:
                 ev = AgentEvents.EV_KEEPALIVE_FAILURE
                 _logger.warning("Adding event (%s) to event queue.", ev)
                 self._event_queue.put((ev, ()))
-
                 return AgentStates.STARTED
 
         # Go ahead start a keep-alive timer

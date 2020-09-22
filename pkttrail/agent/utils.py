@@ -35,7 +35,7 @@ def get_running_services():
                 proc = psutil.Process(conn.pid)
                 proc_dict = proc.as_dict(['name', 'exe'])
             else:
-                _logger.warning("Ignoring Connection Proto: %s, Port: %d",
+                _logger.warning("Ignoring Service(Proto: %s, Port: %d)",
                         proto, conn.laddr.port)
                 continue
 
