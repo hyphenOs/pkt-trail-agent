@@ -281,8 +281,8 @@ class PktTrailAgent:
 
 
     def __repr__(self):
-        return "PktTrailAgent: State: {}, Pending Events: {}".format(
-                self._state, self._event_queue.qsize())
+        return "PktTrailAgent: State: {}, Pending Events: {}, Errors: (KeepAlive: {}, Init: {})".format(
+                self._state, self._event_queue.qsize(), self._keepalive_errors, self._init_errors)
 
 
 if __name__ == '__main__':

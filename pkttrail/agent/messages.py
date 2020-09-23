@@ -88,6 +88,8 @@ def is_valid_response(json):
 
 if __name__ == '__main__':
 
-    i = InitRequestMessage()
+    import uuid
+    agent_uuid = str(uuid.uuid1())
+    i = InitRequestMessage(agent_uuid=agent_uuid)
 
     print(i.to_wire())
