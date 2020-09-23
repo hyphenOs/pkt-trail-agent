@@ -11,12 +11,14 @@ from pkttrail.schema.messages import (
 from pkttrail.schema.messages import (
         OS_AGENT_INIT_MESSAGE,
         OS_AGENT_KEEPALIVE_MESSAGE,
-        JSON_RPC_VERSION_2
+        JSON_RPC_VERSION_2,
+        method_to_schema_class
     )
 
 from .__version__ import sw_version, schema_version
 
 _logger = logging.getLogger(__name__)
+
 
 class JsonRPCMessage:
 
@@ -81,7 +83,26 @@ class KeepAliveRequestMessage(JsonRPCMessage):
         return message
 
 
-def is_valid_response(json):
+def is_valid_response(response_dict, msg_type):
+    """Validates a given response.
+
+    Get the schema for the response. If the Schema is obtained, try
+    to `loads` the schema and upon exception return False. Else
+    return True.
+    """
+
+    try:
+        classes = method_to_schema_class[msg_type]
+        schema = classes['response']
+    except KeyError:
+        _logger.exception("is_valid_response: type: %s", msg_type)
+        return False
+
+    try:
+        _ = schema().load(response_dict)
+    except Exception:
+        _logger.exception("is_valid_response: validating Schema: %s", schema)
+        return False
 
     return True
 

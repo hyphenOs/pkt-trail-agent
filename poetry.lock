@@ -48,7 +48,7 @@ version = "0.0.1"
 marshmallow = "*"
 
 [package.source]
-reference = "3b82722c6b03aa69011037ffcee9d45476b19df5"
+reference = "29168199d24fc4cd2ef6e32755e77184f2d1c07d"
 type = "git"
 url = "https://github.com/hyphenOs/pkt-trail-api-schema"
 [[package]]

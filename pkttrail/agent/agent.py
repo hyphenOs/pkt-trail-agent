@@ -6,7 +6,15 @@ from queue import Queue, Empty
 import logging
 import threading
 
+
 import requests
+
+
+from pkttrail.schema.messages import (
+        OS_AGENT_INIT_MESSAGE,
+        OS_AGENT_KEEPALIVE_MESSAGE,
+    )
+
 
 from .messages import (
         InitRequestMessage,
@@ -111,7 +119,6 @@ class PktTrailAgent:
         self._keepalive_errors = 0
         self._keepalive_timer = None
 
-
     def init(self):
 
         self._add_default_actions()
@@ -186,7 +193,7 @@ class PktTrailAgent:
             if not response.ok:
                 raise PktTrailAgentAPIError
 
-            if not is_valid_response(response_json):
+            if not is_valid_response(response_json, OS_AGENT_INIT_MESSAGE):
                 raise PktTrailAgentInvalidAPIResponse
 
             self._init_errors = 0
@@ -240,7 +247,7 @@ class PktTrailAgent:
             if not response.ok:
                 raise PktTrailAgentAPIError
 
-            if not is_valid_response(response_json):
+            if not is_valid_response(response_json, OS_AGENT_KEEPALIVE_MESSAGE):
                 raise PktTrailAgentInvalidAPIResponse
 
             self._keepalive_errors = 0
